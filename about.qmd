@@ -1,9 +1,64 @@
 ---
-title: "About"
+title: "Exploratory Data Analysis of Penguin Set"
+format:
+  html:
+    code-fold: true
 ---
 
-About this site
+```{r}
+# renv::init()
+```
+
+# Penguin Size and Mass
 
 ```{r}
-1 + 1
+library(palmerpenguins)
+library(dplyr)
+library(dbplyr)
+library(ggplot2)
+library(DBI)
+library(duckdb)
+
+# Connect to DuckDB in-memory database
+con <- dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+
+# Load the penguins data
+data("penguins")
+
+# Write the penguins dataset to DuckDB (register the DataFrame as a DuckDB table)
+dbWriteTable(con, "penguins", penguins)
+
+# Now you can use dplyr to query the table
+df <- tbl(con, "penguins")
+```
+
+```{r}
+df %>%
+  group_by(species, sex) %>%
+  summarise(
+    across(
+        ends_with("mm") | ends_with("g"),
+      \(x) mean(x, na.rm = TRUE)
+      )
+    ) %>%
+  dplyr::collect() %>%
+  knitr::kable()
+```
+
+# Penguin Size vs Mass by Species
+
+```{r}
+df %>%
+  ggplot(aes(x = bill_length_mm, y = body_mass_g, color = species)) +
+  geom_point() + 
+  geom_smooth(method = "lm")
+```
+
+```{r}
+
+dbDisconnect(con, shutdown = TRUE)
+```
+
+```{r}
+# renv::snapshot()
 ```
